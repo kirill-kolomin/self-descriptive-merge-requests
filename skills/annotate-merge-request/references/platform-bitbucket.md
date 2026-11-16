@@ -21,6 +21,7 @@ curl -sS -u "$BB_USER:$BB_APP_PASSWORD" \
 ```
 
 - `inline.to` = line in the **new** file; `inline.from` = line in the old file (use for deletions).
+- **File-level comments** (which this skill needs for every changed file) are documented as an `inline` object with only `path` and no line - but that is exactly the kind of detail this unverified mapping may have wrong. Try it on a throwaway PR; if it is rejected, fall back to anchoring on the file's first changed line.
 - Update: `PUT .../comments/{comment_id}`; delete: `DELETE .../comments/{comment_id}`.
 - List for sync: `GET .../comments?pagelen=100`, then filter on the `<!-- sdmr:v1` marker in `content.raw`.
 - Permalinks: the response's `links.html.href`.

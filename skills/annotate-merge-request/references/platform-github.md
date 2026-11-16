@@ -32,6 +32,22 @@ gh api repos/{owner}/{repo}/issues/comments/<comment_id> -X DELETE
 
 Note the path: issue comments are addressed as `issues/comments/<id>` (no PR number) for update/delete.
 
+## File-level comment (mandatory coverage)
+
+Every changed file needs one. Use `subject_type=file` and omit `line`:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/<number>/comments -X POST \
+  -F body=@file-note.md \
+  -f commit_id=$HEAD_SHA \
+  -f path=src/pricing/service.ts \
+  -f subject_type=file
+```
+
+The comment attaches to the file header in the Files-changed view rather than to a code line, so it is the first thing a reviewer sees on opening the file and it does not interleave with the diff.
+
+For a **deleted** file, `path` is still the deleted path and `subject_type=file` works; do not try to anchor a line. If `subject_type=file` is rejected (older GitHub Enterprise), fall back to a `line` anchor on the file's first changed line with `side=RIGHT` (or `LEFT` for a deletion), and say so in your report.
+
 ## Inline comment (review comment)
 
 ```bash

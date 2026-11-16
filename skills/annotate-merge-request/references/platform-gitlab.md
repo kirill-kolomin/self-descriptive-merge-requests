@@ -58,6 +58,27 @@ glab api projects/:id/merge_requests/:iid/discussions -X POST \
   -f position[new_line]=84
 ```
 
+### File-level comment (mandatory coverage)
+
+Every changed file needs one. Use `position_type=file` and send no line numbers:
+
+```bash
+glab api projects/:id/merge_requests/:iid/discussions -X POST \
+  --field body="$(cat file-note.md)" \
+  -f position[position_type]=file \
+  -f position[base_sha]=$BASE_SHA \
+  -f position[start_sha]=$START_SHA \
+  -f position[head_sha]=$HEAD_SHA \
+  -f position[new_path]=src/pricing/service.ts \
+  -f position[old_path]=src/pricing/service.ts
+```
+
+For a deleted file send `old_path` only; for an added file, `new_path` only (send both for anything else, including renames, where they differ).
+
+`position_type=file` needs a reasonably recent GitLab. If the instance rejects it (`400`, or an "invalid position" error), fall back to a `text` position on the file's **first changed line** - the body is unchanged, only the anchor is worse. Note the fallback in your report so the user knows why some comments sit on a line.
+
+### Line-level comment
+
 Line selection rules:
 
 | Target line | Send |
@@ -66,7 +87,7 @@ Line selection rules:
 | Removed line | `old_line` only (omit `new_line`) |
 | Unchanged context line | **both** `new_line` and `old_line` |
 
-`new_path` and `old_path` are both required for `position_type=text`; for a renamed file they differ. For a whole-file annotation use `position[position_type]=file` with no line numbers (supported on recent GitLab; if the instance rejects it, anchor to the first changed line instead).
+`new_path` and `old_path` are both required for `position_type=text`; for a renamed file they differ. 
 
 Multi-line annotations use `position[line_range][start]` / `[end]`. Prefer a single line - a range is harder to keep valid across pushes for no reviewer benefit.
 
