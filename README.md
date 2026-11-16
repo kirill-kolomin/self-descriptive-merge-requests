@@ -84,9 +84,10 @@ Annotations are also skipped for renames, formatting, lockfiles and generated ou
 Four things keep that in check:
 
 1. **Overview first.** Anything that can be said once, at MR level, is said there - not repeated per file. Most of the explanation lives in one comment the reviewer reads top to bottom.
-2. **Hard budgets.** At most 1 inline comment per file and 8 per MR, by default. You can raise them; the agent will not raise them on its own.
-3. **The significance test above**, applied per hunk, with *skip* as the default answer.
-4. **Budget pressure is a signal.** If more than 8 places in one MR are genuinely non-obvious, the finding is that the MR is too large to review well - and the agent says so instead of posting 30 comments.
+2. **Hard budgets.** At most 1 inline comment per file and 8 per MR, by default - **ceilings, not quotas.** There is no rule that a file gets a comment, and nothing tells the agent to use the budget up: in a normal MR most files end with zero inline comments. You can raise the limits; the agent will not raise them on its own.
+3. **The overview is capped too.** It never enumerates every changed file - at most 7 reading-order entries, at most 5 behavior rows, one line per entry-point *area*, and mechanical files collapsed into a single closing line (`+ 14 files of mechanical follow-through`). Otherwise the wall of text just moves from the diff into the overview comment.
+4. **The significance test above**, applied per hunk, with *skip* as the default answer.
+5. **Budget pressure is a signal.** If more than 8 places in one MR are genuinely non-obvious, the finding is that the MR is too large to review well - and the agent says so instead of posting 30 comments.
 
 Two further deliberate choices:
 

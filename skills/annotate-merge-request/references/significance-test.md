@@ -67,7 +67,9 @@ And conversely, a 300-line generated client needs one line in the overview, not 
 
 ## Budget pressure
 
-Defaults: 1 inline comment per file, 8 per MR.
+Defaults: **at most** 1 inline comment per file, **at most** 8 per MR.
+
+These are ceilings, not quotas. There is no expectation that a file gets an inline comment, and no instruction to "use up" the budget - most files in a normal MR should end with zero, because most code passes the test above by being clear. An MR with two inline comments is a good outcome, not an incomplete one.
 
 When more candidates survive the test than the budget allows, keep the ones where being wrong is most expensive - risk concentration (money, auth, data loss, migrations, concurrency) outranks mere novelty. Move the rest into the overview, and tell the user which places lost out, so they can raise the budget if they disagree.
 

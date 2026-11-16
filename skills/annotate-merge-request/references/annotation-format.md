@@ -57,6 +57,17 @@ Section notes:
 - **Behavior table** - use it when there are two or more observable changes; a single change is clearer as one sentence. For a brand-new component, write "new - no prior behavior" rather than inventing a before-state.
 - **Entry points** - one line per changed area, not per function. Bold the changed node. Mark unresolved chains explicitly; never guess (SKILL.md §4).
 - **Reading order** - the highest-value section for a large MR and the easiest to get wrong: it must reflect dependency, not file order.
+
+### The overview has a budget too
+
+**Do not enumerate every changed file.** A 60-file MR with a 60-line reading order just moves the wall of text from the diff into the overview comment, and the reviewer skims it the same way.
+
+- **Reading order: at most 7 entries.** List the files that need reading in order; collapse the rest into one closing line - `+ 14 files of mechanical follow-through (test updates, import fixes, lockfile)`. Name the group, not its members.
+- **Entry points: one line per changed *area*, not per file.** Files reached through the same chain share a line. If the MR has more than 5 distinct entry chains, that is worth saying out loud: it means the MR spans unrelated areas.
+- **Behavior table: at most 5 rows.** More than that and nobody reads the table; pick the changes an operator or user would actually notice and put the rest in prose.
+- **Trivial files get no mention at all.** A lockfile bump, a rename, a formatting pass - these appear only inside the collapsed group line, if anywhere.
+
+If the overview cannot be written inside these limits without losing something a reviewer needs, the honest finding is that the MR is too large to review as one unit. Say that to the user instead of writing a longer comment.
 - **Inline notes** - filled in during phase 2 of cross-referencing. If there are no inline comments, drop the section.
 
 ## Inline comment

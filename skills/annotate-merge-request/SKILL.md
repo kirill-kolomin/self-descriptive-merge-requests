@@ -58,6 +58,8 @@ The *size* of the code is not the test - its *inferential distance* is. A 6-line
 **Budgets** (defaults; the user may raise them explicitly):
 
 - At most **1 inline comment per file**, and at most **8 per MR**.
+- These are ceilings, not quotas. Most files should end with **zero** inline comments; do not spend a budget just because it is there.
+- The overview comment has limits of its own (max 7 reading-order entries, max 5 behavior rows, no per-file enumeration) - see `references/annotation-format.md`.
 - Exceeding a budget is a signal, not a license: if more than 8 places in one MR are genuinely non-obvious, the MR is too large, or the explanation belongs in the overview comment where it can be told as one story. Say that to the user.
 
 ## 4. Draft the overview comment
