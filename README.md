@@ -68,6 +68,26 @@ Import paths only - follows the rename of `PricingService`; no behavior change.
 
 A deleted file gets one line on why it is gone and what replaced it - often the most useful annotation in the whole MR.
 
+**Spec and test files get a different shape entirely** - a list of the cases the file now contains, each with a status:
+
+```markdown
+**Covers:** `PricingService.quote`
+
+**Changed cases**
+
+- **applies tax after rounding** - `adapted` (expectation): expected total changed
+  12.00 → 12.01, because tax is now applied before rounding. The old number encoded the bug.
+- **keeps per-tenant rounding independent** - `added`: two tenants with the same cart
+  must not share a rounded total.
+- **rejects a negative tax rate** - `removed`: validation moved into `TaxRate.parse`.
+
+**Unchanged (2):** returns 0 for an empty cart; is deterministic
+```
+
+The entry-point graph is meaningless for a spec (nothing calls it), and this list answers what a reviewer actually asks: what is covered now, and what did this MR touch. The statuses are **computed** by comparing case bodies between the two revisions - across JS/TS, Python, Go, Rust, JVM, .NET and Gherkin naming - not read off the diff by eye.
+
+`adapted` is the status that earns this whole layer: it is where an AI quietly changes an expectation so a failing test agrees with the code. So an adapted case must say whether the *call shape* changed (signature, mocks, fixtures - routine) or the *expectation* changed (the asserted value - read it carefully), and a removed case must say where its coverage went.
+
 ### 3. A few inline comments, only where the code is genuinely non-obvious
 
 This is the one layer with a judgment call. Each comment is anchored to a diff line and scoped to that hunk - three to six lines, readable inside a diff view:

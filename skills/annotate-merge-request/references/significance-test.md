@@ -68,6 +68,7 @@ And conversely, a 300-line generated client needs one line in the overview, not 
 - **The whole file is new and non-trivial.** Its file comment carries the role and the entry points. Add inline notes only for the specific methods a reviewer could not follow from that - not one per method. Per-method notes on a new file are the single most common way this skill becomes spam.
 - **A hunk is non-obvious *only* because the MR is large.** That is a reading-order problem; fix it in the overview's reading order, not with an inline comment.
 - **You are unsure.** Skip the inline comment and fold the point into the overview. One extra sentence in a comment the reviewer is already reading costs far less than one more comment.
+- **It is a spec file.** Its file comment already lists every case with a status, which is a finer-grained map than inline comments would give. Add an inline comment in a spec only for something the case list cannot express - a non-obvious fixture, a shared mock with a surprising default, a case that passes for a different reason than its name suggests.
 - **The code is wrong.** This skill is not a review. Tell the user directly, in conversation, and fix it - do not post a comment explaining a defect as though it were intent.
 
 ## Budget pressure

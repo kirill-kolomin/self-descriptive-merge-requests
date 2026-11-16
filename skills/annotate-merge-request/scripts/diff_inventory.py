@@ -78,10 +78,15 @@ GENERATED_PATTERNS = (
 )
 
 TEST_PATTERNS = (
-    r"(^|/)(tests?|__tests__|spec|specs|e2e)/",
-    r"[._-](test|spec)\.[a-z0-9]+$",
+    r"(^|/)(tests?|__tests__|spec|specs|e2e|features|cypress|playwright)/",
+    r"[._-](test|tests|spec|specs|steps)\.[A-Za-z0-9]+$",
     r"(^|/)test_[^/]+\.py$",
-    r"[^/]+_test\.(go|py|rb|js|ts)$",
+    r"[^/]+_(test|tests|spec)\.[A-Za-z0-9]+$",
+    # JVM / .NET / Scala naming: PricingTest.java, PricingTests.cs, PricingSpec.scala
+    r"[A-Za-z0-9](Test|Tests|Spec|Specs|IT|ITCase)\.(java|kt|kts|scala|groovy|cs|fs|vb)$",
+    r"(^|/)Test[A-Z][^/]*\.(java|cs)$",
+    # Gherkin / Cucumber
+    r"\.feature$",
 )
 
 SYMBOL_RE = re.compile(
@@ -288,6 +293,171 @@ def _finalize_file(f: dict) -> None:
     ).hexdigest()[:12]
 
 
+# ------------------------------------------------------- test-case extraction
+
+# Case declarations we can recognize directly from one line.
+_CASE_PATTERNS = (
+    # JS/TS: it('...'), test("..."), it.each`...`, test.concurrent('...')
+    r"""^(?P<indent>\s*)(?:it|test|scenario|bench)(?:\.(?:each|only|skip|todo|concurrent|failing|fails|runIf|skipIf))*\s*\(\s*(?P<q>['"`])(?P<name>.+?)(?P=q)""",
+    # Python / pytest
+    r"""^(?P<indent>\s*)(?:async\s+)?def\s+(?P<name>test_[A-Za-z0-9_]*)\s*\(""",
+    # Go: func TestX(t *testing.T) and subtests t.Run("name", ...)
+    r"""^(?P<indent>\s*)func\s+(?P<name>Test[A-Za-z0-9_]*)\s*\(""",
+    r"""^(?P<indent>\s*)t\.Run\(\s*(?P<q>["`])(?P<name>.+?)(?P=q)""",
+    # RSpec / Minitest
+    r"""^(?P<indent>\s*)(?:it|specify|example)\s+(?P<q>['"])(?P<name>.+?)(?P=q)""",
+    # Gherkin
+    r"""^(?P<indent>\s*)(?:Scenario|Scenario Outline|Example):\s*(?P<name>.+?)\s*$""",
+)
+
+# Grouping blocks, used to qualify a case name with its context.
+_SUITE_PATTERN = (
+    r"""^(?P<indent>\s*)(?:describe|context|suite|feature|Feature)"""
+    r"""(?:\.(?:each|only|skip))*\s*[\(\s]\s*(?P<q>['"`])?(?P<name>[^'"`\n]+?)(?P=q)?\s*[,\)\:]"""
+)
+
+# Frameworks where the declaration itself is unremarkable and only the
+# preceding annotation marks it as a test.
+_ANNOTATION_PATTERN = r"""^\s*(?:@(?:Test|ParameterizedTest|RepeatedTest|TestFactory)\b|\[(?:Fact|Theory|Test|TestCase|TestMethod)[\]\(]|#\[(?:test|tokio::test|rstest)\])"""
+_ANNOTATED_DECL_PATTERN = (
+    r"""^(?P<indent>\s*)(?:(?:public|private|internal|protected|static|final|open|override|suspend|async|fun|void|Task|ValueTask|unsafe|extern)\s+)*"""
+    r"""(?:[\w<>\[\],\.\?]+\s+)?(?P<name>[A-Za-z_][\w]*)\s*\("""
+)
+
+_CASE_RES = tuple(re.compile(p) for p in _CASE_PATTERNS)
+_SUITE_RE = re.compile(_SUITE_PATTERN)
+_ANNOTATION_RE = re.compile(_ANNOTATION_PATTERN)
+_ANNOTATED_DECL_RE = re.compile(_ANNOTATED_DECL_PATTERN)
+
+
+def _match_case(line: str, annotated: bool):
+    for rx in _CASE_RES:
+        m = rx.match(line)
+        if m:
+            return len(m.group("indent")), m.group("name").strip()
+    if annotated:
+        m = _ANNOTATED_DECL_RE.match(line)
+        if m and m.group("name") not in ("if", "for", "while", "switch", "return", "catch"):
+            return len(m.group("indent")), m.group("name").strip()
+    return None
+
+
+def extract_test_cases(content: str) -> dict[str, dict]:
+    """Map qualified case name -> {line, body_hash} for one test file.
+
+    Case bodies are sliced from one declaration to the next, which is coarse
+    but stable: what matters is whether a case's body changed at all, not
+    where exactly it ends.
+    """
+    lines = content.splitlines()
+    starts: list[tuple[int, int, str]] = []  # (line_no, indent, qualified name)
+    suites: list[tuple[int, str]] = []
+    annotated = False
+
+    for idx, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if _ANNOTATION_RE.match(line):
+            annotated = True
+            continue
+        hit = _match_case(line, annotated)
+        annotated = False
+        if hit:
+            indent, name = hit
+            while suites and suites[-1][0] >= indent:
+                suites.pop()
+            qualified = " > ".join([s[1] for s in suites] + [name])
+            starts.append((idx, indent, qualified))
+            continue
+        m = _SUITE_RE.match(line)
+        if m:
+            indent = len(m.group("indent"))
+            while suites and suites[-1][0] >= indent:
+                suites.pop()
+            suites.append((indent, m.group("name").strip()))
+
+    cases: dict[str, dict] = {}
+    for position, (line_no, _indent, name) in enumerate(starts):
+        end = starts[position + 1][0] - 1 if position + 1 < len(starts) else len(lines)
+        body = [l for l in lines[line_no - 1:end]]
+        normalized = [
+            n for n in (_normalize_line("=", l) for l in body) if n is not None
+        ]
+        key = name
+        suffix = 2
+        while key in cases:  # duplicate case names do happen
+            key = f"{name} #{suffix}"
+            suffix += 1
+        cases[key] = {
+            "line": line_no,
+            "body_hash": hashlib.sha1("\n".join(normalized).encode("utf-8", "replace")).hexdigest()[:12],
+        }
+    return cases
+
+
+def diff_test_cases(old_content: str, new_content: str) -> list[dict]:
+    """Status of every case in a spec file: unchanged / adapted / added / removed."""
+    old = extract_test_cases(old_content)
+    new = extract_test_cases(new_content)
+    rows = []
+    for name, info in new.items():
+        if name not in old:
+            status = "added"
+        elif old[name]["body_hash"] == info["body_hash"]:
+            status = "unchanged"
+        else:
+            status = "adapted"
+        rows.append({"name": name, "status": status, "line": info["line"]})
+    for name, info in old.items():
+        if name not in new:
+            rows.append({"name": name, "status": "removed", "old_line": info["line"]})
+    order = {"adapted": 0, "added": 1, "removed": 2, "unchanged": 3}
+    return sorted(rows, key=lambda r: (order[r["status"]], r.get("line") or r.get("old_line") or 0))
+
+
+def _git_show(rev: str, path: str) -> str:
+    proc = subprocess.run(
+        ["git", "show", f"{rev}:{path}"], capture_output=True, text=True
+    )
+    return proc.stdout if proc.returncode == 0 else ""
+
+
+def annotate_test_files(files: list[dict], diff_range: str | None) -> None:
+    """Attach a test-case status list to every spec file in the inventory.
+
+    Needs the full old and new file contents, so it only runs when we were
+    given a git range (not a bare diff on stdin).
+    """
+    if not diff_range or ".." not in diff_range:
+        return
+    base, _, head = diff_range.partition("..")
+    head = head.lstrip(".") or "HEAD"
+    base = base or "HEAD~1"
+    for f in files:
+        if not f.get("test") or f.get("binary"):
+            continue
+        old_content = _git_show(base, f["old_path"]) if f.get("old_path") else ""
+        new_content = _git_show(head, f["new_path"]) if f.get("new_path") else ""
+        if not old_content and not new_content:
+            continue
+        cases = diff_test_cases(old_content, new_content)
+        if not cases:
+            continue
+        f["test_cases"] = cases
+        counts = {
+            status: sum(1 for c in cases if c["status"] == status)
+            for status in ("adapted", "added", "removed", "unchanged")
+        }
+        f["test_case_counts"] = counts
+        # A spec file whose cases were adapted, added or removed is the
+        # opposite of trivial: an adapted expectation is the single thing a
+        # reviewer of an AI-authored MR most needs to see.
+        if counts["adapted"] or counts["added"] or counts["removed"]:
+            f["likely_trivial"] = False
+            f["trivial_reasons"] = [r for r in f["trivial_reasons"] if r != "test-file"]
+
+
 # ----------------------------------------------------------------------- main
 
 
@@ -317,6 +487,22 @@ def render_text(inventory: dict) -> str:
             f"{f['change']:9} {f['path']}  +{f['added']}/-{f['removed']}  "
             f"hunks={len(f['hunks'])}  ffp={f['file_fingerprint']}  {coverage} [{flags}]"
         )
+        if f.get("test_cases"):
+            c = f["test_case_counts"]
+            out.append(
+                f"    test cases: {c['adapted']} adapted, {c['added']} added, "
+                f"{c['removed']} removed, {c['unchanged']} unchanged"
+            )
+            for case in f["test_cases"]:
+                if case["status"] == "unchanged":
+                    continue
+                where = case.get("line") or case.get("old_line")
+                out.append(f"      [{case['status']:9}] line {where:<5} {case['name']}")
+            unchanged = [c2["name"] for c2 in f["test_cases"] if c2["status"] == "unchanged"]
+            if unchanged:
+                shown = "; ".join(unchanged[:5])
+                more = f"; (+{len(unchanged) - 5} more)" if len(unchanged) > 5 else ""
+                out.append(f"      [unchanged] {shown}{more}")
         for h in f["hunks"]:
             sym = h["symbol"] or "?"
             out.append(
@@ -355,6 +541,8 @@ def main(argv=None) -> int:
         p.error("give a diff range, --diff-file, or --stdin")
 
     files = parse_diff(read_diff(args))
+    if not (args.stdin or args.diff_file):
+        annotate_test_files(files, args.range)
     inventory = {
         "range": args.range or args.diff_file or "<stdin>",
         "files": files,
