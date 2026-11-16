@@ -158,7 +158,7 @@ The agent detects the platform from the git remote and finds the open MR for the
 
 ## Included scripts
 
-Both are plain Python 3 with no dependencies and can be run on their own:
+Both are plain Python 3 with no dependencies, and can be run on their own from anywhere (give them an absolute path - the agent does the same, since it runs from your repository, not from the skill directory):
 
 ```bash
 # map a diff range into the hunks an inline comment could anchor to
