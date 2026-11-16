@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "self-descriptive-merge-requests",
+  "version": "1.0.0",
+  "description": "Teaches an agent to annotate its own merge/pull requests with reviewer-facing explanations - intent, before/after behavior, and a verified entry-point graph - so reviewers stop having to interrogate the AI about every file and hunk.",
+  "author": {
+    "name": "Kirill Kolomin"
+  },
+  "repository": "https://github.com/kirill-kolomin/self-descriptive-merge-requests",
+  "license": "MIT",
+  "keywords": ["code-review", "merge-request", "pull-request", "gitlab", "github", "annotations", "agent-skills"]
+}
