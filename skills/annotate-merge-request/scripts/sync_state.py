@@ -217,7 +217,13 @@ def classify(comment: dict, marker: dict, by_fingerprint, by_path, files) -> dic
 
     if kind == "overview":
         result["class"] = "overview"
-        result["action"] = "rewrite in place (edit, keep the comment id so links stay valid)"
+        result["anchor_path"] = comment.get("path")
+        result["anchor_line"] = comment.get("line")
+        result["action"] = (
+            "refresh the summary and verify its current diff anchor"
+            if result["anchor_path"]
+            else "verify placement and migrate to Changes if unanchored"
+        )
         return result
 
     if kind == "file":
@@ -360,7 +366,7 @@ def find_defects(marked, annotations):
                     "comment_id": comment["id"],
                     "defect": "unresolved cross-reference token",
                     "detail": f"[[ref:{token}]] is still in the posted body - "
-                    "run phase 2 of the cross-reference pass",
+                    "replace it with a verified diff-line link",
                 }
             )
         slug = marker.get("slug")
@@ -372,7 +378,7 @@ def find_defects(marked, annotations):
                 {
                     "comment_id": ids[0],
                     "defect": "duplicate slug",
-                    "detail": f"slug '{slug}' is used by comments {ids} - cross-references to it are ambiguous",
+                    "detail": f"slug '{slug}' is used by comments {ids} - annotation identity is ambiguous",
                 }
             )
     overviews = [a for a in annotations if a["kind"] == "overview"]
@@ -381,8 +387,8 @@ def find_defects(marked, annotations):
             {
                 "comment_id": overviews[0]["comment_id"],
                 "defect": "multiple overview comments",
-                "detail": f"{len(overviews)} overview comments found - keep one and delete the rest "
-                "(this is what re-running annotate instead of sync does)",
+                "detail": f"{len(overviews)} overview comments found - keep one in the current diff "
+                "and retire the rest without deleting reviewer replies",
             }
         )
     return defects

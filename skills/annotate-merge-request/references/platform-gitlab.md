@@ -5,7 +5,7 @@ Verified against the GitLab REST API docs (Notes API, Discussions API) as of 202
 Use `glab` when it is installed and authenticated (`glab auth status`); fall back to `curl` with `$GITLAB_TOKEN` against `$CI_API_V4_URL` / `https://gitlab.com/api/v4`. `glab api` proxies the REST API with auth already handled, which is the most reliable path:
 
 ```bash
-glab api projects/:id/merge_requests/:iid/notes -X POST -f body="..."
+glab api projects/:id/merge_requests/:iid
 ```
 
 `:id` may be the URL-encoded path (`group%2Fproject`); `glab api` substitutes `:id` for the current repo automatically. `:iid` is the MR's **internal** id (the number in the MR URL), not the global `id`.
@@ -27,15 +27,11 @@ glab api projects/:id/merge_requests/:iid | jq '.diff_refs'
 
 `diff_refs` is the authoritative source for `position[*_sha]`. Local `HEAD` can differ from the MR head (unpushed commits), and a mismatched `head_sha` makes the position invalid - the API rejects it with `400 Note {:line_code=>["must be a valid line code"]}`.
 
-## Overview comment (MR level)
+## Summary in Changes
 
-```bash
-glab api projects/:id/merge_requests/:iid/notes -X POST --field body="$(cat overview.md)"
-```
+Post `overview.md` with the positioned file-level Discussions API command below, using the first changed file in the reading order and retaining the `kind=overview` marker. Use the same changed-line fallback if needed. Do not use the Notes API to post new annotations: it cannot attach them to Changes.
 
-Notes created this way are **not** attached to a line and are **not** resolvable threads - exactly what the overview comment needs. `POST .../notes` does not accept a `position` parameter at all; it cannot create inline comments.
-
-Update and delete:
+To retire a legacy Overview-only note during migration:
 
 ```bash
 glab api projects/:id/merge_requests/:iid/notes/<note_id> -X PUT --field body="$(cat overview.md)"
@@ -120,13 +116,10 @@ Resolving needs the Developer role or above, or authorship of the change under r
 
 ```bash
 glab api "projects/:id/merge_requests/:iid/discussions?per_page=100" --paginate \
-  | jq '[.[] | {discussion_id: .id, individual_note,
-                notes: [.notes[] | select(.body | contains("<!-- sdmr:v1"))
-                        | {id, body, position, resolved, author: .author.username}]}]
-      | map(select(.notes | length > 0))' > /tmp/sdmr-comments.json
+  | jq -s 'add // []' > /tmp/sdmr-comments.json
 ```
 
-The discussions listing includes individual notes too (`individual_note: true`), so this one call finds both the overview comment and the inline ones. Match on the `<!-- sdmr:v1` marker - never on author alone, since the same account posts human comments too.
+The listing includes legacy unpositioned notes as well as diff comments. Keep unmarked replies in the fetched JSON so sync can detect them. Match annotations by the `<!-- sdmr:v1` marker, not by author.
 
 Edit a note inside a thread:
 
@@ -137,11 +130,9 @@ glab api projects/:id/merge_requests/:iid/discussions/<discussion_id>/notes/<not
 
 Send either `body` or `resolved` in one call, never both.
 
-## Comment permalinks (for cross-references)
+## Diff-line links
 
-`https://<host>/<group>/<project>/-/merge_requests/<iid>#note_<note_id>`
-
-The note id comes back in the POST response (`.id`, or `.notes[0].id` for a discussion). Collect them all, then run phase 2 of the cross-reference pass.
+Copy the target line link from the MR's Changes tab. Verify that it opens the diff at that line, not a repository file or a `#note_<note_id>` thread.
 
 ## Staleness signals
 
