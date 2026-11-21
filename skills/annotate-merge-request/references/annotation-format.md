@@ -68,7 +68,7 @@ Section notes:
 - **Trivial files get no mention at all.** A lockfile bump, a rename, a formatting pass - these appear only inside the collapsed group line, if anywhere.
 
 If the overview cannot be written inside these limits without losing something a reviewer needs, the honest finding is that the MR is too large to review as one unit. Say that to the user instead of writing a longer comment.
-- **Inline notes** - link to the code lines explained by the inline notes, not to the threads. If there are no inline comments, drop the section.
+- **Inline notes** - link to the lines in Changes explained by the inline notes, not to the threads. If there are no inline comments, drop the section.
 - **No per-file detail.** The overview says what the MR does; the file comments say what each file does. Repeating file detail here is the fastest way to make both unreadable.
 
 ## File comment
@@ -119,7 +119,7 @@ Import paths only - follows the rename of `PricingService`; no behavior change.
 
 ```markdown
 Deleted. Its only caller was `SyncRunner`, which now uses `PricingService.quote` directly
-(see [the new call in SyncRunner](<code-line-url>)). No other references remained -
+(see [the new call in SyncRunner](<diff-line-url>)). No other references remained -
 verified with `rg 'LegacyQuote'`.
 
 <!-- sdmr:v1 kind=file slug=legacy-quote anchor=src/pricing/legacy-quote.ts ffp=9f2c4411ab08 -->
@@ -131,8 +131,8 @@ verified with `rg 'LegacyQuote'`.
 **Role:** Tenant-aware cache key builder, extracted so pricing and billing derive keys
 the same way.
 
-**Reached from:** [`PricingService.quote`](<code-line-url>) and
-[`BillingJob.run`](<code-line-url>), both updated in this MR.
+**Reached from:** [`PricingService.quote`](<diff-line-url>) and
+[`BillingJob.run`](<diff-line-url>), both updated in this MR.
 
 <!-- sdmr:v1 kind=file slug=cache-key anchor=src/cache/key.ts ffp=4c8ab3a4b2c1 -->
 ```
@@ -146,7 +146,7 @@ For a test or spec file, the standard template answers the wrong questions. Noth
 So a spec file's comment is a list of its test cases instead:
 
 ```markdown
-**Covers:** [`PricingService.quote`](<code-line-url>)
+**Covers:** [`PricingService.quote`](<diff-line-url>)
 
 **Changed cases**
 
@@ -156,7 +156,7 @@ So a spec file's comment is a list of its test cases instead:
 - **keeps per-tenant rounding independent** - `added`: covers the new tenant argument;
   two tenants with the same cart must not share a rounded total.
 - **rejects a negative tax rate** - `removed`: the validation moved into
-  `TaxRate.parse`, which has [its own test case](<code-line-url>).
+  `TaxRate.parse`, which has [its own test case](<diff-line-url>).
 
 **Unchanged (2):** returns 0 for an empty cart; is deterministic
 
@@ -223,13 +223,13 @@ rounding mode is unchanged, so historical invoices are not affected.
 
 No comment. The name states the unit and the purpose; 300ms is an unremarkable value. Annotating it would spend reviewer attention to tell them what they already read.
 
-## Code-line cross-references
+## Diff-line cross-references
 
 Use link text that names the code or explains the connection:
 
 ```markdown
-**Why:** The key now includes the tenant ID so [the resolver's tenant-specific settings](<code-line-url>)
+**Why:** The key now includes the tenant ID so [the resolver's tenant-specific settings](<diff-line-url>)
 don't share a cache entry.
 ```
 
-Replace `<code-line-url>` in these examples with a verified diff-line or commit-pinned source-line URL before posting. Marker slugs identify annotations for sync; they are not link targets.
+Replace `<diff-line-url>` with a verified link to the target line in the MR/PR's Changes view before posting. Never substitute a source-file or comment URL. Marker slugs identify annotations for sync; they are not link targets.

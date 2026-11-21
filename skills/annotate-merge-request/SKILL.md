@@ -88,7 +88,7 @@ One summary comment, anchored to the primary changed file (the first file in the
 - **Before → after behavior** - what an observer of the running system would notice. For a new component, say "new" rather than inventing a "before".
 - **Entry-point graph** - how a reader reaches the changed code from a real entry point (HTTP route, CLI command, event handler, cron, exported API). Bounded at 3 levels; one line per changed *area*, not per file.
 - **Reading order** - which file to open first, which are mechanical follow-through.
-- **Inline notes** - links to the code lines the inline annotations explain, not to the comments.
+- **Inline notes** - links to the lines in Changes that the inline annotations explain, not to the comments.
 
 The overview has its own volume limits (max 7 reading-order entries, max 5 behavior rows, no per-file enumeration - the file comments do that). They are in `references/annotation-format.md`; respect them, or the overview becomes the wall of text the file comments were meant to prevent.
 
@@ -118,7 +118,7 @@ Each inline annotation uses the same sections as the file comment, scoped to tha
 
 When a change supports or depends on another significant part of the MR, explain the connection and link to that part's **exact code line**, usually in another file. For example, a file comment explaining a new parameter should link to the caller line that now supplies it, not to that caller's file comment. Avoid links to unrelated changes or to the top of a file when a specific line explains the reason.
 
-Build and verify these links **before posting**. Prefer a direct diff-line link when the platform provides one; otherwise use a source-line permalink pinned to the reviewed commit (head for new-side code, base for removed code). Verify the revision, path and line against the relevant side of the diff. Never link to a review comment or post a placeholder.
+Build and verify these links **before posting**. Each link must open the **MR/PR diff view** (for example, GitHub's Files changed or GitLab's Changes) at the exact target line. Verify the file, line and old/new side in the reviewed diff. Never substitute a repository file or commit source permalink, a review comment URL, or a placeholder. If the line is not in the diff or a diff-line link cannot be verified, name the file and symbol in plain text and report the missing link.
 
 ## 7. Post, with an identity marker
 

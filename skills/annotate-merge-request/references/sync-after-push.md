@@ -12,7 +12,7 @@ An annotation is a claim about code. Every push can falsify it: the described li
 4. Classify: `python3 scripts/sync_state.py --inventory /tmp/sdmr-inventory.json --comments /tmp/sdmr-comments.json`. Read both sections of its report: the per-annotation classes *and* `file coverage`, which is where files added by this push show up as `MISSING`.
 5. Act on each class (below). Read the actual new code before rewriting any body - the classifier tells you *that* something changed, never *what it now means*.
 6. Refresh the overview and check that its anchor still shows in Changes. Check the file and inline annotations for current diff placement too.
-7. Recheck code-line links in every annotation, even those classified `ok`. Update links when the target line moves or the reviewed revision changes, and replace legacy comment links or unresolved tokens with verified code-line links. Refresh screenshots when the depicted UI changes.
+7. Recheck diff-line links in every annotation, even those classified `ok`. Update links when the target line moves or the reviewed revision changes, and replace legacy comment links, repository file links or unresolved tokens with verified diff-line links. If the target is no longer in the diff, name the file and symbol without a link. Refresh screenshots when the depicted UI changes.
 8. Report how many annotations were kept, updated, removed or added, and any gaps in Changes visibility or screenshots.
 
 ## Classes and what to do
@@ -37,7 +37,7 @@ A file that leaves the diff entirely (reverted in a later commit) shows up as an
 
 ## Migrate Overview-only annotations
 
-If a legacy summary or other annotation is not anchored to the diff, post the refreshed body at the proper diff anchor after approval. Verify the replacement before retiring the old comment. Delete the old comment only if you can verify it has no replies; otherwise keep the thread and replace your original body with a short note pointing to the location in Changes by code-line link. Remove the skill marker from that retired body so the next sync does not treat it as an active annotation.
+If a legacy summary or other annotation is not anchored to the diff, post the refreshed body at the proper diff anchor after approval. Verify the replacement before retiring the old comment. Delete the old comment only if you can verify it has no replies; otherwise keep the thread and replace your original body with a short note pointing to the location in Changes by diff-line link. Remove the skill marker from that retired body so the next sync does not treat it as an active annotation.
 
 ## Edit, don't churn
 

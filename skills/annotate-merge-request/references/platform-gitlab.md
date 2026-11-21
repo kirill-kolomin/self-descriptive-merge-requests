@@ -130,9 +130,9 @@ glab api projects/:id/merge_requests/:iid/discussions/<discussion_id>/notes/<not
 
 Send either `body` or `resolved` in one call, never both.
 
-## Code-line links
+## Diff-line links
 
-Copy the target line link from Changes or use a commit-pinned source-line permalink. A `#note_<note_id>` URL points to a thread, not to the code.
+Copy the target line link from the MR's Changes tab. Verify that it opens the diff at that line, not a repository file or a `#note_<note_id>` thread.
 
 ## Staleness signals
 

@@ -366,7 +366,7 @@ def find_defects(marked, annotations):
                     "comment_id": comment["id"],
                     "defect": "unresolved cross-reference token",
                     "detail": f"[[ref:{token}]] is still in the posted body - "
-                    "replace it with a verified code-line link",
+                    "replace it with a verified diff-line link",
                 }
             )
         slug = marker.get("slug")

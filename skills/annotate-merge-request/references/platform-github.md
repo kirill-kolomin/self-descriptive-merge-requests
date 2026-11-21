@@ -122,9 +122,9 @@ gh api repos/{owner}/{repo}/issues/<number>/comments --paginate \
 
 Keep unmarked replies in the fetched JSON so sync can detect them. Match annotations by the `<!-- sdmr:v1` marker, not by author.
 
-## Code-line links
+## Diff-line links
 
-Copy the target line link from Files changed or use a commit-pinned source-line permalink. The comment response's `html_url` points to a thread and is not a code-line link.
+Copy the target line link from Files changed. Verify that it opens the PR diff at that line, not a repository file or the thread URL from the comment response's `html_url`.
 
 ## Staleness signals
 

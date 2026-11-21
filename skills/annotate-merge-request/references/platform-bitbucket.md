@@ -18,7 +18,7 @@ curl -sS -u "$BB_USER:$BB_APP_PASSWORD" \
 - **File-level comments** (which this skill needs for every changed file) are documented as an `inline` object with only `path` and no line - but that is exactly the kind of detail this unverified mapping may have wrong. Try it on a throwaway PR; if it is rejected, fall back to anchoring on the file's first changed line.
 - Update: `PUT .../comments/{comment_id}`; delete: `DELETE .../comments/{comment_id}`.
 - List for sync: `GET .../comments?pagelen=100`, then filter on the `<!-- sdmr:v1` marker in `content.raw`.
-- Copy a target line link from the diff or the commit's source view; `links.html.href` on the comment response is not a code-line link.
+- Use only a verified target line link in the PR diff. If one is unavailable, name the file and symbol without linking to the commit's source view or the comment response's `links.html.href`.
 
 If `$BB_TOKEN` (access token) is in use instead of an app password, send `-H "Authorization: Bearer $BB_TOKEN"` instead of `-u`.
 

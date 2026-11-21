@@ -104,7 +104,7 @@ rounding mode is unchanged, so historical invoices are not affected.
 
 ### 4. Cross-references between changes in the same MR
 
-When a change supports another significant part of the MR, the annotation explains why and links to the exact line that shows the connection, usually in another file. Links go to the code, not to the review comments, and are verified before posting.
+When a change supports another significant part of the MR, the annotation explains why and links to the exact line in the MR's diff view (for example, Files changed on GitHub), usually in another file. Links never go to a repository file or a comment thread and are verified before posting.
 
 ### 5. Screenshots for UI components
 
@@ -161,7 +161,7 @@ So the plugin has a second mode, run after every push, which re-checks each exis
 | `MISSING` | a changed file has no file comment (usually added by this push) | annotated - mandatory coverage |
 | `uncovered` | new hunk, no inline comment | annotated if it passes the significance test |
 
-Comments are edited rather than reposted where possible, so reviewer replies survive. A comment a human replied to is never deleted. Code-line links are rechecked even if the annotation's own file did not change, and screenshots are refreshed when the UI they show changes. A resolved annotation that goes stale is reopened, since the reviewer's "I read this" no longer covers the code that is there now.
+Comments are edited rather than reposted where possible, so reviewer replies survive. A comment a human replied to is never deleted. Diff-line links are rechecked even if the annotation's own file did not change, and screenshots are refreshed when the UI they show changes. A resolved annotation that goes stale is reopened, since the reviewer's "I read this" no longer covers the code that is there now.
 
 Each comment carries an invisible marker (`<!-- sdmr:v1 ... -->`) holding its anchor and a fingerprint of the code it describes - per-hunk for inline comments, per-file for file comments. That is what makes the agent's own comments identifiable, and what distinguishes "the line number moved" from "the code changed".
 
