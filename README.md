@@ -4,7 +4,7 @@ An [Agent Plugin](https://agent-plugins.org/) that makes AI-authored merge reque
 
 When an agent writes the code, the reviewer is the only person in the loop who does not know why anything is the way it is. So the review becomes an interrogation: *why this order? what did this change? who calls this? is this related to that other file?* - a round-trip per question, each one a context switch for both sides.
 
-This plugin has the agent answer those questions **up front, on the merge request**, where review actually happens: a map of the change at MR level, an explanation on every changed file, and short notes on the genuinely non-obvious lines. It works at the level of the merge request and the git client, not the source code - nothing here adds comments to your source files.
+This plugin has the agent answer those questions **in the Changes tab**, where review actually happens: a map of the change, an explanation on every changed file, and short notes on the genuinely non-obvious lines. All are written in plain language. Nothing here adds comments to your source files.
 
 Once installed, ask your agent things like:
 
@@ -30,15 +30,15 @@ gh skill install kirill-kolomin/self-descriptive-merge-requests
 
 ## What it posts
 
-### 1. One overview comment at MR level
+### 1. One summary in the diff
 
-The reviewer's entry point, carrying:
+The reviewer's entry point is anchored to the first changed file in the reading order, not posted as an Overview-only comment. It carries:
 
 - **Intent** - what problem this MR solves and why this approach, in plain language.
 - **Behavior: before → after** - what an observer of the running system would notice, including what is *not* changing but looks like it should be.
 - **Entry points** - how the changed code is reached from a real entry point (HTTP route, CLI command, event handler, cron, exported API), bounded at three levels.
 - **Reading order** - which file to open first, which are mechanical follow-through.
-- **An index of the inline notes**, so the whole annotation set is visible from one place.
+- **An index of the lines explained by inline notes**, linking straight to the code.
 
 ### 2. One comment on every changed file
 
@@ -104,7 +104,11 @@ rounding mode is unchanged, so historical invoices are not affected.
 
 ### 4. Cross-references between changes in the same MR
 
-When a change is only correct because of another change in the same MR, the annotations link to each other - usually in the entry-point graph, but also in intent ("needed because `TenantResolver` now returns per-tenant configs") and in before/after. Since a comment's URL does not exist until it is posted, the agent posts with placeholder tokens and then edits in the real links.
+When a change supports another significant part of the MR, the annotation explains why and links to the exact line that shows the connection, usually in another file. Links go to the code, not to the review comments, and are verified before posting.
+
+### 5. Screenshots for UI components
+
+The relevant annotation includes a screenshot from the running UI with a red outline around the component. If the UI cannot be captured or the image cannot be attached, the agent reports what is missing.
 
 ## When it stays quiet
 
@@ -157,7 +161,7 @@ So the plugin has a second mode, run after every push, which re-checks each exis
 | `MISSING` | a changed file has no file comment (usually added by this push) | annotated - mandatory coverage |
 | `uncovered` | new hunk, no inline comment | annotated if it passes the significance test |
 
-Comments are edited rather than deleted and reposted, so their URLs, cross-reference links and reviewer replies survive. A comment a human replied to is never deleted. A resolved annotation that goes stale is reopened, since the reviewer's "I read this" no longer covers the code that is there now.
+Comments are edited rather than reposted where possible, so reviewer replies survive. A comment a human replied to is never deleted. Code-line links are rechecked even if the annotation's own file did not change, and screenshots are refreshed when the UI they show changes. A resolved annotation that goes stale is reopened, since the reviewer's "I read this" no longer covers the code that is there now.
 
 Each comment carries an invisible marker (`<!-- sdmr:v1 ... -->`) holding its anchor and a fingerprint of the code it describes - per-hunk for inline comments, per-file for file comments. That is what makes the agent's own comments identifiable, and what distinguishes "the line number moved" from "the code changed".
 
@@ -165,8 +169,8 @@ Each comment carries an invisible marker (`<!-- sdmr:v1 ... -->`) holding its an
 
 | Platform | Status |
 |---|---|
-| **GitLab** (MRs, `glab`) | Supported. Overview via the Notes API; file and line comments via the Discussions API with a `position` object (`position_type=file` / `text`). |
-| **GitHub** (PRs, `gh`) | Supported. Overview via issue comments; file and line comments via review comments (`subject_type=file` / `line`+`side`). |
+| **GitLab** (MRs, `glab`) | Diff annotations via the Discussions API with a `position` object (`position_type=file` / `text`). |
+| **GitHub** (PRs, `gh`) | Diff annotations via review comments (`subject_type=file` / `line`+`side`). |
 | **Bitbucket** | **Untested.** A documented mapping is included and may well work, but it has not been run against a live instance - the agent will tell you so before posting. |
 
 The agent detects the platform from the git remote and finds the open MR for the current branch. It defaults to showing you a **dry-run preview** in the conversation and posts only after you approve.

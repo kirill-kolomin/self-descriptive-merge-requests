@@ -4,7 +4,7 @@ Verified against the GitHub REST API docs (Pulls / Comments, Issues / Comments) 
 
 Use `gh` (`gh auth status` to confirm). `gh api` handles auth, pagination (`--paginate`), and `{owner}/{repo}` substitution.
 
-GitHub says "pull request" where this skill says "merge request" - same thing. Note the API's own split: **PR-level comments live on the Issues API**, inline comments on the Pulls API.
+GitHub says "pull request" where this skill says "merge request" - same thing. Post all annotations via the Pulls API so they appear in Files changed.
 
 ## Find the PR and the diff range
 
@@ -15,15 +15,11 @@ git fetch origin && git merge-base HEAD origin/main
 
 `headRefOid` is the PR's current head SHA - use it as `commit_id` when posting inline comments, not local `HEAD` (which may include unpushed commits).
 
-## Overview comment (PR level)
+## Summary in Files changed
 
-```bash
-gh pr comment <number> --body-file overview.md
-# or, to capture the id for later updates:
-gh api repos/{owner}/{repo}/issues/<number>/comments -X POST -F body=@overview.md | jq '.id, .html_url'
-```
+Post `overview.md` with the file-level command below, using the first changed file in the reading order and retaining the `kind=overview` marker. Use the same changed-line fallback if needed. Do not use `gh pr comment` or the Issues API for new annotations.
 
-Update and delete:
+To retire a legacy Conversation-only comment during migration:
 
 ```bash
 gh api repos/{owner}/{repo}/issues/comments/<comment_id> -X PATCH -F body=@overview.md
@@ -115,23 +111,23 @@ If it is on (or you cannot read it), tell the user that the annotations will nee
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/<number>/comments --paginate \
-  | jq '[.[] | select(.body | contains("<!-- sdmr:v1"))
-         | {id, path, line, original_line, side, commit_id, position, html_url, body}]' \
+  | jq -s 'add // []' \
   > /tmp/sdmr-comments.json
 
+# Also check for legacy Conversation-only annotations.
 gh api repos/{owner}/{repo}/issues/<number>/comments --paginate \
-  | jq '[.[] | select(.body | contains("<!-- sdmr:v1")) | {id, html_url, body}]' \
+  | jq -s 'add // []' \
   > /tmp/sdmr-overview.json
 ```
 
-Match on the `<!-- sdmr:v1` marker, not on author - the same account also posts human comments.
+Keep unmarked replies in the fetched JSON so sync can detect them. Match annotations by the `<!-- sdmr:v1` marker, not by author.
 
-## Comment permalinks (for cross-references)
+## Code-line links
 
-Every POST response carries `html_url` - use it verbatim for cross-reference links. (`#discussion_r<id>` for review comments, `#issuecomment-<id>` for PR-level ones.)
+Copy the target line link from Files changed or use a commit-pinned source-line permalink. The comment response's `html_url` points to a thread and is not a code-line link.
 
 ## Staleness signals
 
-- `line` and `position` become `null` when the anchored line no longer exists in the latest diff - the UI marks the comment **Outdated**. Treat null `line` as `orphaned-or-moved` and re-check against `original_line`.
+- For line comments, `line` and `position` become `null` when the anchored line no longer exists in the latest diff. Treat null `line` as `orphaned-or-moved` only for line comments, not for `subject_type=file`.
 - `commit_id` older than the PR's current `headRefOid` means the comment was anchored to a previous revision; it may still render fine if the line was untouched.
 - A comment can stay perfectly anchored while the code around it changed meaning. Position checks are necessary but not sufficient - use the marker fingerprint (`references/sync-after-push.md`).

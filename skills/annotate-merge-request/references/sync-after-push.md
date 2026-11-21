@@ -8,18 +8,18 @@ An annotation is a claim about code. Every push can falsify it: the described li
 
 1. `git fetch origin`, then recompute the diff range: `git merge-base HEAD origin/<target>`. The base **moves** when the target branch advances or the branch was rebased - reusing the old base makes the whole inventory wrong.
 2. Rebuild the inventory: `python3 scripts/diff_inventory.py <base>..HEAD --json > /tmp/sdmr-inventory.json`.
-3. Fetch this skill's own comments by marker into `/tmp/sdmr-comments.json` (commands in the platform reference for your host).
+3. Fetch comments including replies into `/tmp/sdmr-comments.json` (commands in the platform reference for your host). The classifier matches the skill's comments by marker.
 4. Classify: `python3 scripts/sync_state.py --inventory /tmp/sdmr-inventory.json --comments /tmp/sdmr-comments.json`. Read both sections of its report: the per-annotation classes *and* `file coverage`, which is where files added by this push show up as `MISSING`.
 5. Act on each class (below). Read the actual new code before rewriting any body - the classifier tells you *that* something changed, never *what it now means*.
-6. Rewrite the overview comment in place; any push can invalidate its intent, behavior table, or entry-point graph.
-7. Re-run the cross-reference pass (SKILL.md §6 phase 2) if any comment was deleted or reposted - its URL changed, and links to it in other comments are now dead.
-8. Report: how many annotations were kept, updated, removed, added.
+6. Refresh the overview and check that its anchor still shows in Changes. Check the file and inline annotations for current diff placement too.
+7. Recheck code-line links in every annotation, even those classified `ok`. Update links when the target line moves or the reviewed revision changes, and replace legacy comment links or unresolved tokens with verified code-line links. Refresh screenshots when the depicted UI changes.
+8. Report how many annotations were kept, updated, removed or added, and any gaps in Changes visibility or screenshots.
 
 ## Classes and what to do
 
 | Class | Meaning | Action |
 |---|---|---|
-| `ok` | Anchor line and fingerprint both unchanged | **Nothing.** Do not re-post, do not "refresh". Untouched comments keep their URLs and the thread history reviewers have already read. |
+| `ok` | Anchor line and fingerprint both unchanged | Leave it alone unless a link, screenshot or diff position needs fixing. |
 | `moved` | Same code, different line number | Re-anchor. Prefer editing the existing comment if the platform still renders it correctly; repost only if it has become unanchored. |
 | `stale` | The code it described changed | Re-read it, rewrite the body, edit in place. Update `fp=` (inline) or `ffp=` (file) in the marker. |
 | `orphaned` | File or hunk no longer in the diff | Delete the comment. If deletion is not permitted, replace the body with one line: `Change described here was removed in a later push.` plus the marker. |
@@ -35,11 +35,15 @@ And separately, from the `file coverage` section of the report:
 
 A file that leaves the diff entirely (reverted in a later commit) shows up as an `orphaned` file comment - delete it.
 
+## Migrate Overview-only annotations
+
+If a legacy summary or other annotation is not anchored to the diff, post the refreshed body at the proper diff anchor after approval. Verify the replacement before retiring the old comment. Delete the old comment only if you can verify it has no replies; otherwise keep the thread and replace your original body with a short note pointing to the location in Changes by code-line link. Remove the skill marker from that retired body so the next sync does not treat it as an active annotation.
+
 ## Edit, don't churn
 
 Prefer `PATCH`/`PUT` over delete-and-repost:
 
-- Editing keeps the comment's URL, so cross-references and anything a reviewer bookmarked stay valid.
+- Editing keeps the comment's URL, so reviewer bookmarks stay valid.
 - Editing keeps replies. Deleting a comment a human replied to destroys their words - **never delete a comment that has replies**; edit the body instead.
 - A reposted comment re-notifies every subscriber. A reviewer who gets eight notifications per push stops reading them.
 

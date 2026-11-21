@@ -2,17 +2,11 @@
 
 > **This mapping has not been tested against a live Bitbucket instance.** It is a starting point derived from Bitbucket's documented API shape, not verified behavior. Treat every command here as a hypothesis: run it on a throwaway PR first, and tell the user plainly that Bitbucket support is unverified before posting anything to a real PR.
 
-Bitbucket calls them **pull requests** and uses a single comments endpoint for both PR-level and inline comments, distinguished by an `inline` object in the payload.
+Bitbucket calls them **pull requests**. Include an `inline` object on all Cloud annotations so they appear in the diff, including the summary on the first changed file in the reading order.
 
 ## Bitbucket Cloud
 
 ```bash
-# PR-level comment
-curl -sS -u "$BB_USER:$BB_APP_PASSWORD" \
-  -X POST "https://api.bitbucket.org/2.0/repositories/$WORKSPACE/$REPO/pullrequests/$PR_ID/comments" \
-  -H 'Content-Type: application/json' \
-  -d '{"content": {"raw": "...markdown..."}}'
-
 # inline comment
 curl -sS -u "$BB_USER:$BB_APP_PASSWORD" \
   -X POST "https://api.bitbucket.org/2.0/repositories/$WORKSPACE/$REPO/pullrequests/$PR_ID/comments" \
@@ -24,13 +18,13 @@ curl -sS -u "$BB_USER:$BB_APP_PASSWORD" \
 - **File-level comments** (which this skill needs for every changed file) are documented as an `inline` object with only `path` and no line - but that is exactly the kind of detail this unverified mapping may have wrong. Try it on a throwaway PR; if it is rejected, fall back to anchoring on the file's first changed line.
 - Update: `PUT .../comments/{comment_id}`; delete: `DELETE .../comments/{comment_id}`.
 - List for sync: `GET .../comments?pagelen=100`, then filter on the `<!-- sdmr:v1` marker in `content.raw`.
-- Permalinks: the response's `links.html.href`.
+- Copy a target line link from the diff or the commit's source view; `links.html.href` on the comment response is not a code-line link.
 
 If `$BB_TOKEN` (access token) is in use instead of an app password, send `-H "Authorization: Bearer $BB_TOKEN"` instead of `-u`.
 
 ## Bitbucket Data Center / Server
 
-Different API entirely (`/rest/api/1.0/...`), with comments posted to `.../pull-requests/{id}/comments` and anchors expressed as an `anchor` object (`path`, `line`, `lineType`, `fileType`). Comment updates require the current `version` field for optimistic locking - a blind `PUT` fails with 409. Verify against the instance's own API browser before use.
+Different API entirely (`/rest/api/1.0/...`), with comments posted to `.../pull-requests/{id}/comments` and anchors expressed as an `anchor` object (`path`, `line`, `lineType`, `fileType`). Use a diff anchor for every annotation, including the summary. Comment updates require the current `version` field for optimistic locking - a blind `PUT` fails with 409. Verify against the instance's own API browser before use.
 
 ## Known gaps vs GitLab/GitHub
 
